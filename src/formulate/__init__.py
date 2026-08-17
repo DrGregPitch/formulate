@@ -16,13 +16,14 @@ from .acquisition import ACQUISITIONS, acquisition_scores
 from .design_space import DesignSpace, build_design_space
 from .experiment import ExperimentSummary, experiments_to_target, run_experiment
 from .loop import CampaignResult, run_campaign
+from .real_data import build_spe_design_space
 from .surrogate import EnsembleSurrogate, GPSurrogate
 
 __version__ = "0.1.0"
 
 __all__ = [
     "__version__",
-    "DesignSpace", "build_design_space",
+    "DesignSpace", "build_design_space", "build_spe_design_space",
     "GPSurrogate", "EnsembleSurrogate",
     "ACQUISITIONS", "acquisition_scores",
     "CampaignResult", "run_campaign",

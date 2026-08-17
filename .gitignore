@@ -11,3 +11,5 @@ build/
 results/
 *.DS_Store
 .ipynb_checkpoints/
+data_cache/
+results_spe/

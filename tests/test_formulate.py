@@ -14,6 +14,7 @@ from formulate import (
     GPSurrogate,
     acquisition_scores,
     build_design_space,
+    build_spe_design_space,
     experiments_to_target,
     run_campaign,
     run_experiment,
@@ -114,3 +115,56 @@ def test_experiments_to_target_censors_non_reachers(space):
     ett = experiments_to_target(summ, target_frac=0.98)
     # UCB should reach the target in no more experiments than random (usually far fewer)
     assert ett["ucb"] <= ett["random"]
+
+
+def test_experiments_to_target_handles_negative_values():
+    """Range-relative target must work when the property is negative (e.g. log
+    conductivity), where the old `frac * best` definition was nonsense."""
+    from formulate.experiment import ExperimentSummary
+    # two strategies, values run from -15 (worst) to -1 (best); one reaches high fast
+    s = ExperimentSummary(budget=5, best_value=-1.0, worst_value=-15.0)
+    s.traces = {
+        "fast": np.array([[-15, -10, -2, -2, -2]], dtype=float),
+        "slow": np.array([[-15, -14, -13, -12, -11]], dtype=float),
+    }
+    ett = experiments_to_target(s, target_frac=0.9)  # target = -15 + 0.9*14 = -2.4
+    assert ett["fast"] == 3        # reaches -2 at experiment 3
+    assert ett["slow"] > s.budget  # never gets close
+
+
+# --------------------------------------------------------------------------
+# real data (solid polymer electrolytes)
+# --------------------------------------------------------------------------
+
+def test_spe_design_space_from_fixture(tmp_path):
+    """The SPE loader converts [Cu]/[Au] to [*], keeps binary polymer+salt rows,
+    and yields a usable design space. Uses a tiny in-test fixture (no network)."""
+    import pandas as pd
+    compounds = pd.DataFrame({
+        "compound_id": [1, 2, 10, 11],
+        "smiles": ["CC", "CCC", "[Li+].[F-]", "[Li+].[Cl-]"],
+        "salt": [0, 0, 1, 1],
+        "polymer": [1, 1, 0, 0],
+        "monomeric_unit": ["[Cu]CC[Au]", "[Cu]CC(C)[Au]", None, None],
+    })
+    processed = pd.DataFrame({
+        "cmp1_mn_or_mw": [50000.0, 50000.0, 80000.0, 80000.0],
+        "value": [-3.0, -4.0, -2.0, -5.0],       # log conductivity
+        "property": ["log Conductivity"] * 4,
+        "unit": ["S/cm"] * 4,
+        "Temperature, K": [300.0, 320.0, 300.0, 350.0],
+        "cmp_ids": ["[1, 10]", "[1, 11]", "[2, 10]", "[2, 11]"],
+        "cmp_mole_fractions": ["[0.8, 0.2]"] * 4,
+        "cmp_mws": ["[44.0, 100.0]"] * 4,
+    })
+    pc = tmp_path / "compounds.csv"
+    pp = tmp_path / "processed.csv"
+    compounds.to_csv(pc, index=False)
+    processed.to_csv(pp, index=False)
+
+    space = build_spe_design_space(str(pp), str(pc))
+    assert len(space) == 4                         # all four are binary polymer+salt
+    assert space.X.shape[1] == len(space.feature_names)
+    assert np.isfinite(space.X).all()
+    np.testing.assert_allclose(sorted(space.y_true), [-5.0, -4.0, -3.0, -2.0])
+    assert space.best_value == pytest.approx(-2.0)
