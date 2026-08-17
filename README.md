@@ -46,6 +46,32 @@ Not all experiments cost the same — exotic comonomers are expensive to source.
 
 ---
 
+## On real data: discovering polymer electrolytes for batteries
+
+The synthetic oracle above proves the loop works with ground truth we control. But the loop is *property-agnostic* — the surrogate, the acquisition functions, and the campaign don't know or care where the numbers come from. So pointing the whole thing at real data is exactly one new function, `build_spe_design_space`, and nothing else changes.
+
+The real design space is **solid polymer electrolyte (SPE) ionic conductivity** — the search for better battery electrolytes — using 6,949 measured formulations curated by [CheMixHub](https://github.com/chemcognition-lab/chemixhub) (MIT-licensed). Each candidate is a real (polymer, lithium salt, composition, temperature) point; the loop treats each measurement as an expensive experiment and counts them.
+
+```bash
+python scripts/fetch_spe.py               # download the data (MIT)
+python scripts/run_spe.py --outdir results
+```
+
+![Active learning vs random screening on real solid-polymer-electrolyte conductivity data.](assets/spe_money_plot.png)
+
+| strategy | experiments to reach the top 10% of conductivity |
+|:---|---:|
+| random screening | 28 |
+| greedy | 11 |
+| **UCB** | 14 |
+| **EI** | 12 |
+
+*Median over 15 restarts; 6,949 real formulations, best measured conductivity 0.044 S/cm.*
+
+**Active learning reaches a top-decile electrolyte in ~11 experiments; random screening needs 28 — a 2.5× reduction on real, literature-measured data.** The gap is more modest than on the clean synthetic oracle, which is exactly what honest real data looks like: the property surface is noisier, so the surrogate is less certain and random occasionally gets lucky. It still reaches good electrolytes more than twice as fast — the difference between a two-week and a five-week experimental campaign. (The polymer repeat units in this dataset mark their connection points with `[Cu]`/`[Au]`; the loader translates them to the `[*]` the featurizer expects.)
+
+---
+
 ## Reproduce it
 
 ```bash

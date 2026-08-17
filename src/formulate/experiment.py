@@ -26,6 +26,7 @@ class ExperimentSummary:
 
     budget: int
     best_value: float
+    worst_value: float = 0.0
     traces: dict[str, np.ndarray] = field(default_factory=dict)  # strategy -> (restarts, budget)
 
     def mean(self, strategy: str) -> np.ndarray:
@@ -47,7 +48,10 @@ def run_experiment(
     cost_aware: bool = False,
 ) -> ExperimentSummary:
     """Run each strategy over ``n_restarts`` seeds; collect best-found traces."""
-    summary = ExperimentSummary(budget=budget, best_value=space.best_value)
+    summary = ExperimentSummary(
+        budget=budget, best_value=space.best_value,
+        worst_value=float(np.min(space.y_true)),
+    )
     for strat in strategies:
         runs = []
         for r in range(n_restarts):
@@ -66,12 +70,12 @@ def experiments_to_target(
 ) -> dict[str, float]:
     """Median number of experiments each strategy needs to reach the target.
 
-    ``target_frac`` is a fraction of the global best property in the pool (0.98 =
-    within 2% of the optimum). Returns NaN for a strategy that fails to reach it
-    within budget in over half its restarts -- which is itself the finding for
-    random search on a hard space.
+    ``target_frac`` is a fraction of the way from the worst to the best value in
+    the pool (0.98 = within the top 2% of the achievable range). Defining it over
+    the *range* rather than as ``frac * best`` keeps it sensible when values are
+    negative (e.g. log-conductivity), where ``0.98 * best`` would be nonsense.
     """
-    target = target_frac * summary.best_value
+    target = summary.worst_value + target_frac * (summary.best_value - summary.worst_value)
     out = {}
     for strat, t in summary.traces.items():
         reached = []
