@@ -54,13 +54,20 @@ def run_campaign(
         ``predict(return_std=True)``.
     cost_aware
         If True, divide the acquisition score by candidate cost, so the loop
-        prefers cheaper experiments of comparable promise.
+        prefers cheaper experiments of comparable promise. Scores are shifted to
+        be non-negative first: raw UCB/greedy scores are negative whenever the
+        target is (e.g. log-conductivity), and dividing a negative score by a
+        larger cost would *raise* it -- silently inverting the preference toward
+        the most expensive candidates.
     """
     rng = np.random.default_rng(seed)
     n = len(space)
     budget = min(budget, n)
 
-    queried: list[int] = list(rng.choice(n, size=min(n_seed, n), replace=False))
+    # never seed with more experiments than the budget allows, or the trace
+    # comes out longer than `budget` and downstream metrics/plots misalign
+    n_seed = min(n_seed, budget, n)
+    queried: list[int] = list(rng.choice(n, size=n_seed, replace=False))
     remaining = set(range(n)) - set(queried)
 
     def trace(idx_list):
@@ -80,7 +87,8 @@ def run_campaign(
             best = float(np.max(space.y_true[queried]))
             scores = acquisition_scores(strategy, mu, sigma, best, rng, beta)
         if cost_aware:
-            scores = scores / space.cost[rem]
+            # utility-per-cost needs a non-negative utility (see docstring)
+            scores = (scores - scores.min()) / space.cost[rem]
 
         pick = int(rem[int(np.argmax(scores))])
         queried.append(pick)

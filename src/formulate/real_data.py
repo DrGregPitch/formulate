@@ -116,9 +116,12 @@ def build_spe_design_space(
             continue
 
         salt_frac = fracs[ids.index(sid)]
+        # pandas encodes missing MW as NaN, which is truthy -- `mw or 1e4` would
+        # pass it through and poison the feature matrix (GP raises mid-campaign).
+        mw_val = mw if (mw is not None and np.isfinite(mw) and mw > 0) else 1e4
         feat = np.concatenate([
             pol_cache[pid], salt_cache[sid],
-            [salt_frac, np.log10(mw or 1e4), temp],
+            [salt_frac, np.log10(mw_val), temp],
         ])
         rows.append(feat)
         targets.append(float(val))

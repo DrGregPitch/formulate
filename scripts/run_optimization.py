@@ -70,7 +70,10 @@ def main() -> None:
         shown = f"{v:.0f}" if v <= args.budget else f">{args.budget}"
         print(f"  {s:8s} {shown}")
     best_al = min(v for s, v in ett.items() if s != "random")
-    if ett["random"] > args.budget:
+    if best_al > args.budget:
+        print(f"\nNo active-learning strategy reached the target within "
+              f"{args.budget} experiments on a median restart.")
+    elif ett["random"] > args.budget:
         print(f"\nActive learning reaches the target in ~{best_al:.0f} experiments; "
               f"random screening does not reach it within {args.budget}.")
     else:
@@ -99,9 +102,11 @@ def main() -> None:
         ax.plot(xs, summ.mean(s), color=COLORS[s], lw=2, label=s)
         lo, hi = summ.band(s)
         ax.fill_between(xs, lo, hi, color=COLORS[s], alpha=0.15)
-    target = args.target_frac * space.best_value
+    # same range-relative definition experiments_to_target uses, so the plotted
+    # line sits exactly at the threshold the table was computed against
+    target = summ.worst_value + args.target_frac * (summ.best_value - summ.worst_value)
     ax.axhline(target, color="crimson", ls="--", lw=1,
-               label=f"{args.target_frac:.0%} of optimum")
+               label=f"top {(1 - args.target_frac):.0%} of range")
     ax.axhline(space.best_value, color="k", ls=":", lw=1, label="optimum")
     ax.set_xlabel("number of experiments")
     ax.set_ylabel("best Tg found (C)")
