@@ -21,15 +21,15 @@ On **real, measured data** — 6,949 solid-polymer-electrolyte conductivities
 
 | strategy | experiments to reach the top 10% of conductivity |
 |:---|---:|
-| random screening | 28 |
-| **UCB / EI** (active learning) | **~12** |
+| random screening | 30 |
+| **EI / greedy / UCB** (active learning) | **~10–13** |
 
-**Active learning finds a top-decile electrolyte in ~11–14 experiments; random
-screening needs 28 — a 2.5× reduction on real, literature-measured data.** That's
-the difference between a two-week and a five-week experimental campaign. The gap is
-smaller than on a clean synthetic oracle (below), which is exactly what honest real
-data looks like — noisier surface, less certain surrogate — and reporting it *as*
-2.5× is the point.
+**Active learning finds a top-decile electrolyte in ~10–13 experiments; random
+screening needs 30 — roughly a 3× reduction on real, literature-measured data**
+(median over 20 restarts; `python scripts/run_spe.py --restarts 20`). That's the
+difference between a two-week and a five-week experimental campaign. The gap is
+smaller and noisier than on the clean synthetic oracle (below) — which is exactly
+what honest real data looks like: a rougher surface and a less certain surrogate.
 
 ## Run it
 
