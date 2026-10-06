@@ -19,13 +19,14 @@ On **real, measured data** — 6,949 solid-polymer-electrolyte conductivities
 
 ![Active learning vs random screening on real solid-polymer-electrolyte conductivity data.](assets/spe_money_plot.png)
 
-| strategy | experiments to reach the top 10% of conductivity |
+| strategy | experiments to reach within 10% of the best conductivity |
 |:---|---:|
 | random screening | 30 |
 | **EI / greedy / UCB** (active learning) | **~10–13** |
 
-**Active learning finds a top-decile electrolyte in ~10–13 experiments; random
-screening needs 30 — roughly a 3× reduction on real, literature-measured data**
+**Active learning reaches within 10% of the best measured conductivity in ~10–13
+experiments; random screening needs 30 — roughly a 3× reduction on real,
+literature-measured data**
 (median over 20 restarts; `python scripts/run_spe.py --restarts 20`). That's the
 difference between a two-week and a five-week experimental campaign. The gap is
 smaller and noisier than on the clean synthetic oracle (below) — which is exactly
@@ -56,8 +57,9 @@ the whole thing at a new problem is *one new design-space builder*:
   [`polytools`](https://github.com/DrGregPitch/polytools) gradient-boosting ensemble.
   Returns a mean *and an uncertainty* — what acquisition needs.
 - **Acquisition** (`acquisition.py`) — `random`, `greedy`, `ucb`, `ei`. The lesson:
-  the specific one matters less than *using the surrogate's uncertainty to choose at
-  all*.
+  the specific one matters less than *using the surrogate at all* — even plain
+  greedy exploitation of its mean beats random and ties the uncertainty-aware
+  strategies.
 - **Loop** (`loop.py`) — seed → propose → measure → update, tracking the best found.
 - **Cost-aware mode** — divide acquisition score by a candidate's cost to reach the
   target for less total *spend*, not just fewer runs.
